@@ -27,7 +27,7 @@ class SimpleRAG:
     A class to handle the Simple RAG process for document chunking and query retrieval.
     """
 
-    def __init__(self, path, chunk_size=1000, chunk_overlap=200, n_retrieved=2):
+    def __init__(self, path, chunk_size=1000, chunk_overlap=200, n_retrieved=2, use_cache=True):
         """
         Initializes the SimpleRAGRetriever by encoding the PDF document and creating the retriever.
 
@@ -41,7 +41,7 @@ class SimpleRAG:
 
         # Encode the PDF document into a vector store using OpenAI embeddings
         start_time = time.time()
-        self.vector_store = encode_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap, use_cache=False)
+        self.vector_store = encode_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap, use_cache=use_cache)
         self.time_records = {'Chunking': time.time() - start_time}
         print(f"Chunking Time: {self.time_records['Chunking']:.2f} seconds")
 
@@ -98,9 +98,19 @@ def parse_args():
                         help="Query to test the retriever (default: 'What is the main cause of climate change?').")
     parser.add_argument("--evaluate", action="store_true",
                         help="Whether to evaluate the retriever's performance (default: False).")
+    parser.add_argument("--use_cache", action="store_true", default=True,
+                        help="Use cached vector store if available(default: True).")
+    parser.add_argument("--no-cache", action="store_true", dest="no_cache", 
+                        help="Disable caching")
+    
+    args = parser.parse_args()
+    if args.no_cache:
+        args.use_cache = False
+    
+
 
     # Parse and validate arguments
-    return validate_args(parser.parse_args())
+    return validate_args(args)
 
 
 # Main function to handle argument parsing and call the SimpleRAGRetriever class
@@ -110,7 +120,8 @@ def main(args):
         path=args.path,
         chunk_size=args.chunk_size,
         chunk_overlap=args.chunk_overlap,
-        n_retrieved=args.n_retrieved
+        n_retrieved=args.n_retrieved,
+        use_cache=args.use_cache
     )
 
     # Retrieve context based on the query

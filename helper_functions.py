@@ -16,7 +16,7 @@ from enum import Enum
 import pickle
 import os
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", ".cache")
+CACHE_DIR = os.path.join(os.path.dirname(__file__), ".cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 def replace_t_with_space(list_of_documents):
@@ -61,15 +61,17 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200, use_cache=True):
     Returns:
         A FAISS vector store containing the encoded book content.
     """
-    # ⭐ 生成缓存文件名
-    cache_file = os.path.join(CACHE_DIR, f"vectorstore_{os.path.basename(path)}.pkl")
+    # ⭐ 生成缓存目录名（注意：这次是目录，不是文件）
+    cache_dir = os.path.join(CACHE_DIR, f"vectorstore_{os.path.basename(path)}")
     
     # ⭐ 如果缓存存在，直接加载
-    if use_cache and os.path.exists(cache_file):
-        print(f"✅ Loading cached vector store from {cache_file}")
+    if use_cache and os.path.exists(cache_dir):
+        print(f"✅ Loading cached vector store from {cache_dir}")
         try:
-            with open(cache_file, 'rb') as f:
-                return pickle.load(f)
+            # ⭐ 使用 FAISS 的原生加载方法
+            embeddings = OpenAIEmbeddings()
+            vectorstore = FAISS.load_local(cache_dir, embeddings, allow_dangerous_deserialization=True)
+            return vectorstore
         except Exception as e:
             print(f"⚠️ Failed to load cache: {e}. Regenerating...")
         
@@ -92,10 +94,17 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200, use_cache=True):
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
 
+    # ⭐ 保存到缓存（使用 FAISS 原生方法）
     if use_cache:
-        print(f"Saving vector store to cache: {cache_file}")
-        with open(cache_file, 'wb') as f:
-            pickle.dump(vectorstore, f)
+        try:
+            print(f"💾 Saving vector store to cache: {cache_dir}")
+            # ⭐ 使用 save_local 而不是 pickle.dump
+            vectorstore.save_local(cache_dir)
+            print("✅ Cache saved successfully")
+        except Exception as e:
+            print(f"⚠️ Failed to save cache: {e}")
+    else:
+        print("⏭️ Skipping cache (use_cache=False)")
 
     return vectorstore
 
