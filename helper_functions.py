@@ -13,7 +13,11 @@ import random
 import textwrap
 import numpy as np
 from enum import Enum
+import pickle
+import os
 
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", ".cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 def replace_t_with_space(list_of_documents):
     """
@@ -45,7 +49,7 @@ def text_wrap(text, width=120):
     return textwrap.fill(text, width=width)
 
 
-def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
+def encode_pdf(path, chunk_size=1000, chunk_overlap=200, use_cache=True):
     """
     Encodes a PDF book into a vector store using OpenAI embeddings.
 
@@ -57,21 +61,41 @@ def encode_pdf(path, chunk_size=1000, chunk_overlap=200):
     Returns:
         A FAISS vector store containing the encoded book content.
     """
-
+    # ⭐ 生成缓存文件名
+    cache_file = os.path.join(CACHE_DIR, f"vectorstore_{os.path.basename(path)}.pkl")
+    
+    # ⭐ 如果缓存存在，直接加载
+    if use_cache and os.path.exists(cache_file):
+        print(f"✅ Loading cached vector store from {cache_file}")
+        try:
+            with open(cache_file, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e:
+            print(f"⚠️ Failed to load cache: {e}. Regenerating...")
+        
     # Load PDF documents
+    #类PyPDFLoader可以接收1.路径和2.url(optional)参数
     loader = PyPDFLoader(path)
+    #load方法加载PDF并分页，返回List[Document]，Document是一种对象
     documents = loader.load()
 
     # Split documents into chunks
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len
     )
+    #方法split_documents将按页分割的List[Document]，变化为按块分割的List[Document]
     texts = text_splitter.split_documents(documents)
+    #处理tab(\t)
     cleaned_texts = replace_t_with_space(texts)
 
     # Create embeddings and vector store
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(cleaned_texts, embeddings)
+
+    if use_cache:
+        print(f"Saving vector store to cache: {cache_file}")
+        with open(cache_file, 'wb') as f:
+            pickle.dump(vectorstore, f)
 
     return vectorstore
 
@@ -140,7 +164,7 @@ def retrieve_context_per_question(question, chunks_query_retriever):
     """
 
     # Retrieve relevant documents for the given question
-    docs = chunks_query_retriever.get_relevant_documents(question)
+    docs = chunks_query_retriever.invoke(question)
 
     # Concatenate document content
     # context = " ".join(doc.page_content for doc in docs)

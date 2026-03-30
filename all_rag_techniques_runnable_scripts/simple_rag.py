@@ -3,16 +3,23 @@ import sys
 import argparse
 import time
 from dotenv import load_dotenv
-
+"""
 # Add the parent directory to the path since we work with notebooks
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
+"""
+#rev2:先导入.env再引用evaluate_rag.py
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+
+#rev1:使用变量__file__绝对定位目录
+script_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(script_dir)  # all_rag_techniques_runnable_scripts 的父目录
+sys.path.insert(0, root_dir)
 
 from helper_functions import *
 from evaluation.evalute_rag import *
 
-# Load environment variables from a .env file (e.g., OpenAI API key)
-load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+
 
 
 class SimpleRAG:
@@ -34,7 +41,7 @@ class SimpleRAG:
 
         # Encode the PDF document into a vector store using OpenAI embeddings
         start_time = time.time()
-        self.vector_store = encode_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        self.vector_store = encode_pdf(path, chunk_size=chunk_size, chunk_overlap=chunk_overlap, use_cache=False)
         self.time_records = {'Chunking': time.time() - start_time}
         print(f"Chunking Time: {self.time_records['Chunking']:.2f} seconds")
 
@@ -74,8 +81,12 @@ def validate_args(args):
 
 # Function to parse command line arguments
 def parse_args():
+    script_dir2 = os.path.dirname(os.path.abspath(__file__))
+    root_dir2 = os.path.dirname(script_dir2)
+    default_pdf_path = os.path.join(root_dir2, "data", "Understanding_Climate_Change.pdf")
+
     parser = argparse.ArgumentParser(description="Encode a PDF document and test a simple RAG.")
-    parser.add_argument("--path", type=str, default="../data/Understanding_Climate_Change.pdf",
+    parser.add_argument("--path", type=str, default=default_pdf_path,
                         help="Path to the PDF file to encode.")
     parser.add_argument("--chunk_size", type=int, default=1000,
                         help="Size of each text chunk (default: 1000).")
