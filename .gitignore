@@ -3,7 +3,7 @@
 RAG_TECHNIQUES/*
 
 # Allow only specific file types
-!RAG_TECHNIQUES/*.py
+!*RAG_TECHNIQUES/*.py
 !*.py
 !*.md
 !*.txt
