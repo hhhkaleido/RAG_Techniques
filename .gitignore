@@ -1,9 +1,8 @@
 # Ignore everything by default
 *
-RAG_TECHNIQUES/*
 
 # Allow only specific file types
-!*RAG_TECHNIQUES/*.py
+!RAG_TECHNIQUES/all_rag_techniques_runnable_scripts/
 !*.py
 !*.md
 !*.txt
