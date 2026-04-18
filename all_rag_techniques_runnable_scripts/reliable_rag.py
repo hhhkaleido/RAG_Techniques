@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 # Load environment variables from '.env' file
 load_dotenv()
 
-os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY') # For LLM -- llama-3.1-8b (small) & mixtral-8x7b-32768 (large)
+os.environ['GROQ_API_KEY'] = os.getenv('GROQ_API_KEY') # For LLM -- llama-3.1-8b (small) & llama-3.3-70b-versatile (large)
 os.environ['COHERE_API_KEY'] = os.getenv('COHERE_API_KEY') # For embedding
 os.environ['USER_AGENT'] = os.getenv('USER_AGENT', 'rag-agent/1.0')
 
@@ -216,7 +216,7 @@ print(response)
 
 
 from typing import List
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 # Data model
@@ -243,8 +243,8 @@ class HighlightDocuments(BaseModel):
         description="List of direct segements from used documents that answers the question"
     )
 
-# LLM
-llm = ChatGroq(model="mixtral-8x7b-32768", temperature=0)
+# LLM，使用可调用的模型
+llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
 
 # parser
 parser = PydanticOutputParser(pydantic_object=HighlightDocuments)
