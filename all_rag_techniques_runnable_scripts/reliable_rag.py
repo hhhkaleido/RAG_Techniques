@@ -53,6 +53,7 @@ urls = [
 ]
 
 # Load
+#WebBaseLoader同样返回List[Document]
 docs = [WebBaseLoader(url).load() for url in urls]
 docs_list = [item for sublist in docs for item in sublist]
 
@@ -63,6 +64,7 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
 doc_splits = text_splitter.split_documents(docs_list)
 
 # Add to vectorstore
+#collection_name是向量数据库的名字，可以创建不同名字的不同向量库
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag",
