@@ -126,6 +126,7 @@ system = """You are a grader assessing relevance of a retrieved document to a us
     It does not need to be a stringent test. The goal is to filter out erroneous retrievals. \n
     Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question.\n
     You must output a valid JSON object with a single 'binary_score'."""
+#grade_prompt接收dict
 grade_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
@@ -170,6 +171,7 @@ llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
 
 # Post-processing
 def format_docs(docs):
+    #连接文本，以'\n'分隔
     return "\n".join(f"<doc{i+1}>:\nTitle:{doc.metadata['title']}\nSource:{doc.metadata['source']}\nContent:{doc.page_content}\n</doc{i+1}>\n" for i, doc in enumerate(docs))
 
 # Chain
