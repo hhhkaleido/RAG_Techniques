@@ -211,6 +211,7 @@ hallucination_prompt = ChatPromptTemplate.from_messages(
 
 hallucination_grader = hallucination_prompt | structured_llm_grader
 
+response = hallucination_grader.invoke({"documents": format_docs(docs_to_use), "generation": generation}, method="json_mode")
 print(response)
 
 # ### Highlight used docs
