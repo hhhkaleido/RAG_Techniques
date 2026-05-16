@@ -45,11 +45,12 @@ def evaluate_response_time_and_accuracy(chunk_size, eval_questions, eval_documen
     Settings.llm = llm
     
     # Create vector index
-    splitter = SentenceSplitter(chunk_size=chunk_size)
+    splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=min(50, chunk_size // 5))
     vector_index = VectorStoreIndex.from_documents(eval_documents, transformations=[splitter])
 
     # Build query engine
-    query_engine = vector_index.as_query_engine(similarity_top_k=5)
+    #减少检索量
+    query_engine = vector_index.as_query_engine(similarity_top_k=3)
     num_questions = len(eval_questions)
 
     # Iterate over each question in eval_questions to compute metrics
@@ -76,7 +77,10 @@ def evaluate_response_time_and_accuracy(chunk_size, eval_questions, eval_documen
 
 class RAGEvaluator:
     def __init__(self, data_dir, num_eval_questions, chunk_sizes):
-        self.data_dir = data_dir
+        # 获取当前脚本的绝对路径目录
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # 将脚本目录与输入的 data_dir 拼接，并标准化路径（消除 ..）
+        self.data_dir = os.path.normpath(os.path.join(script_dir, data_dir))
         self.num_eval_questions = num_eval_questions
         self.chunk_sizes = chunk_sizes
         self.documents = self.load_documents()
@@ -90,10 +94,11 @@ class RAGEvaluator:
         return SimpleDirectoryReader(self.data_dir).load_data()
 
     def generate_eval_questions(self):
-        eval_documents = self.documents[0:20]
+        #调小生成评测的文档，减少请求，避免限流
+        eval_documents = self.documents[0:5]
         data_generator = DatasetGenerator.from_documents(eval_documents)
         eval_questions = data_generator.generate_questions_from_nodes()
-        return random.sample(eval_questions, self.num_eval_questions)
+        return random.sample(eval_questions, min(self.num_eval_questions, len(eval_questions)))
 
 
     def create_faithfulness_evaluator(self):
@@ -111,6 +116,7 @@ class RAGEvaluator:
         return RelevancyEvaluator(llm=self.llm_gpt4)
 
     def run(self):
+        #chunk是一个list，可以测试不同的chunk_size
         for chunk_size in self.chunk_sizes:
             avg_response_time, avg_faithfulness, avg_relevancy = evaluate_response_time_and_accuracy(
                 chunk_size,
@@ -129,7 +135,8 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description='RAG Method Evaluation')
     parser.add_argument('--data_dir', type=str, default='../data', help='Directory of the documents')
-    parser.add_argument('--num_eval_questions', type=int, default=25, help='Number of evaluation questions')
+    #调小num_eval_question的默认数值，减少请求，避免限流
+    parser.add_argument('--num_eval_questions', type=int, default=5, help='Number of evaluation questions')
     parser.add_argument('--chunk_sizes', nargs='+', type=int, default=[128, 256], help='List of chunk sizes')
     return parser.parse_args()
 
